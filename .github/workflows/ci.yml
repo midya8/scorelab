@@ -28,3 +28,6 @@ jobs:
       - run: python -m scorelab demo > /tmp/demo.json
       - run: python -m scorelab audit examples/two-state.json > /tmp/audit.json
       - run: PYTHONPATH=. python examples/render_audit.py --check
+      - run: python -m scorelab linear-demo > /tmp/linear-demo.json
+      - run: python -m scorelab linear examples/two-state.json > /tmp/linear.json
+      - run: PYTHONPATH=. python examples/render_linear.py --check
