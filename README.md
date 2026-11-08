@@ -86,7 +86,7 @@ custom = audit(sequential(), horizon=3,
 assert custom["estimators"]["custom_baseline"]["mean"] == custom["exact_gradient"]
 ```
 
-“Optimal” means minimum **Euclidean trace covariance within deterministic scalar time/state baselines for reward-to-go**. It depends on parameterization and is not a coordinatewise optimum, an optimum over all unbiased estimators, a fitted critic, or a guarantee relative to the separate full-return estimator. Baselines are held fixed inside the score estimator; the API does not accept action-dependent baselines, random fitted baselines or policy updates.
+"Optimal" means minimum **Euclidean trace covariance within deterministic scalar time/state baselines for reward-to-go**. It depends on parameterization and is not a coordinatewise optimum, an optimum over all unbiased estimators, a fitted critic, or a guarantee relative to the separate full-return estimator. Baselines are held fixed inside the score estimator; the API does not accept action-dependent baselines, random fitted baselines or policy updates.
 
 ## Strict model and budget contract
 
