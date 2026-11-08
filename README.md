@@ -4,6 +4,51 @@ Exact policy-gradient distributions, not noisy training curves. A dependency-fre
 
 ![Exact gradient variance: a one-step value-baseline counterexample and a separate shared-parameter sequential model](assets/score-audit.svg)
 
+## Matrix score controls: a full covariance certificate
+
+![Exact matrix score-control audit: a three-action zero-covariance example and singular sequential normal equations](assets/linear-audit.svg)
+
+A scalar baseline subtracts `b Z` from a gradient vector. `audit_linear` allows a **fixed matrix** `B Z` at each time/state, so each output coordinate can use every score coordinate. This is a larger class, not a better fitted critic. It minimizes the **whole covariance matrix in positive-semidefinite order** within that class, instead of just a scalar trace.
+
+For a one-step, three-action policy with probabilities `1/6, 1/3, 1/2`, features `(0,0), (1,0), (0,1)` and rewards `0,1,2`, the true gradient is `[-1/9, 1/3]`:
+
+| Estimator | Trace covariance |
+|---|---:|
+| No baseline | 269/324 |
+| Exact state-value baseline | 29/324 |
+| Best scalar baseline, 64/51 | 53/612 |
+| Best matrix score control | 0 |
+
+The exact matrix `[[2/3,-2/3],[-1/2,1]]` makes **all three** adjusted trajectory gradients equal the true gradient. This is a supplied finite-model example, not a general zero-variance method. The separate 64-path sequential model has a much smaller change: scalar-optimal trace `1.462519`, matrix-optimal trace `1.460918`. Its time/state score ranks are `[1,0,1,1,1,1]`, so pretending every score covariance has an inverse would fail.
+
+```python
+from scorelab import audit_linear
+from scorelab.linear_demo import three_actions
+
+report = audit_linear(three_actions(), horizon=1)
+assert report['exact_gradient'] == [[-1, 9], [1, 3]]
+assert report['estimators']['optimal_linear']['trace_variance'] == [0, 1]
+assert report['baseline_nodes'][0]['score_rank'] == 2
+```
+
+```bash
+python -m scorelab linear-demo
+python -m scorelab linear examples/two-state.json
+PYTHONPATH=. python examples/render_linear.py --check
+```
+
+At node j, `S_j = E[Z_j Z_j^T]`, `C_j = E[G_RTG Z_j^T]`, and the exact normal equations are `B_j* S_j = C_j`. Distinct nodes have zero cross-score blocks. Rational RREF solves singular systems with free coordinates set to zero, **not** a pseudoinverse or a minimum-norm solution. Output includes rank, coefficient nullity per row, every matrix, full coordinate Gram matrix and adjusted path gradients.
+
+For each supported scalar estimator and optional custom matrix control, the audit checks every entry of
+
+```text
+Cov(G_B) - Cov(G_B*) = sum_j (B_j-B_j*) S_j (B_j-B_j*)^T
+```
+
+and returns both the covariance gap and its positive-semidefinite node terms. A singular coefficient matrix is not unique, but its correction on every supported path is. See [MATRIX.md](MATRIX.md) for the finite-model proof and limits.
+
+Optional `control` has shape `[horizon][states][output_coordinate][score_coordinate]` of bounded rational pairs, using the same numerator/denominator bounds as the model. The `linear` CLI input accepts `version: 1`, `model`, `horizon`, and optional `control`, not `baseline`. The original `audit`/`demo` interfaces and their output remain unchanged. Matrix controls are deterministic and held fixed in the score estimator; learned/action-dependent controls and full-return optimization are outside this contract.
+
 ## A correct value baseline can make the gradient nine times noisier
 
 Take one Bernoulli action with `P(action=1)=4/5`, reward equal to the action, and a single logit parameter. Its expected reward is `4/5` and its exact gradient is `4/25`. The score is `1/5` after action 1 and `-4/5` after action 0. A baseline changes each estimate to `score * (reward - baseline)`.
@@ -98,11 +143,11 @@ The input has exactly `version: 1`, `model`, `horizon`, and optional `baseline`.
 - Duplicate JSON keys, extra fields and input over 64 KiB are rejected. `--trajectory-limit` defaults to 4,096 and accepts integer 1..8,192.
 - A count-only dynamic program computes the **exact complete positive-path count** using transition support before trajectory generation. Refusal produces no partial audit. The full 2-state/2-action horizon-three fixture has 64 paths; limit 63 refuses, limit 64 succeeds.
 
-The path cap bounds complete records, not rational bit lengths, total intermediate arithmetic, serialized bytes, wall time or RAM. Zero horizon has one empty trajectory, zero return/gradient/covariance and no baseline nodes. The code does not sample, alter global RNG state, call a service or need a dataset. A four-module wheel reproduces the demo outside the source checkout.
+The path cap bounds complete records, not rational bit lengths, total intermediate arithmetic, serialized bytes, wall time or RAM. Zero horizon has one empty trajectory, zero return/gradient/covariance and no baseline nodes. The code does not sample, alter global RNG state, call a service or need a dataset. A six-module wheel reproduces the demo outside the source checkout.
 
 ## Independent verification
 
-22 tests cover:
+36 tests cover:
 
 - **256 one-step Bernoulli policies** with analytic gradient, value baseline, variance-optimal baseline and variance formulas, including the exact ninefold failure above.
 - **24 shared-parameter sequential model/horizon settings**, with 48 coordinate derivatives checked by a separate dual-number Cartesian path oracle. It differentiates normalized affine tilts with the same derivative as the exponential family at zero, without production scores, trajectory recursion or backward sensitivities. Central finite differences independently check the actual exponential policy objective.
@@ -111,6 +156,8 @@ The path cap bounds complete records, not rational bit lengths, total intermedia
 - Four SVG tests check every one of seven bars and both stated scales, numeric text geometry, complete compressed metadata, byte regeneration and rejection of changed undisplayed trajectory/covariance data.
 
 The SVG embeds the complete exact demo, including trajectory witnesses, as zlib-compressed base64 in `<metadata data-encoding="zlib+base64">`. Decode with `json.loads(zlib.decompress(base64.b64decode(metadata_text)))`. Compression only changes storage; chart label rounding never changes the underlying JSON. The renderer refuses a changed or incomplete demo.
+
+Matrix-control verification adds 15 independently enumerated model/horizon settings, exact cross moments and full Gram blocks, every covariance entry, all principal minors of covariance gaps/node terms (up to dimension three), singular rank-two/three-coordinate and zero-rank cases, exact nonuniqueness, coordinate-transform congruence, custom matrix controls, CLI/isolation checks and three reproducible figure tests. The full suite has 36 tests.
 
 ## Attribution and limits
 
