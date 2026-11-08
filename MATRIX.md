@@ -38,6 +38,6 @@ Eleven matrix-audit tests supplement the original 22 tests. They cover 15 indepe
 
 ## Bounds and attribution
 
-The scalar model limits, strict rational-pair bounds, horizon cap and complete-trajectory preflight still apply. Matrix input adds at most horizon*states*d*d pairs. The coordinate Gram has (horizon*states*d)^2 entries. A path cap is not a total arithmetic, byte, memory or runtime bound. No external service, RNG or dataset is used.
+The scalar model limits, strict rational-pair bounds, horizon cap and complete-trajectory preflight still apply. Matrix input adds at most `horizon*states*d*d` pairs. The coordinate Gram has `(horizon*states*d)^2` entries. A path cap is not a total arithmetic, byte, memory or runtime bound. No external service, RNG or dataset is used.
 
 Score-function control variates and optimal-baseline cautions are standard; see Greensmith, Bartlett and Baxter, JMLR 5 (2004), Sections 4-6: https://www.jmlr.org/papers/v5/greensmith04a.html . That paper's setting is GPOMDP/average reward. The implementation does not implement GPOMDP or reproduce the paper's experiments or theorems. This finite-horizon matrix formulation, exact solver, fixtures, full-covariance certificates and independent tests are original MIT-licensed code and derivations here. No external code or data was copied.
