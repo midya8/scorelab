@@ -1,10 +1,21 @@
 # ScoreLab
 
-Exact policy-gradient distributions, not noisy training curves. A dependency-free finite-model laboratory for score-function gradients, reward-to-go, value baselines and variance-minimizing control variates. Full trajectory witnesses, rational means/covariances and an independently checked expected-return derivative. Python 3.10+, strict JSON CLI, no network or model downloads.
+ScoreLab enumerates the complete policy-gradient distribution of a supplied finite model at a softmax anchor. It compares full-return and reward-to-go estimators, state-value baselines, and optimal scalar and matrix score controls using exact rational means and covariances.
+
+It does not train a policy or fit a critic. The calculations show what each estimator does on the supplied model, not how quickly an agent would learn. Python 3.10+, no dependencies, network access or model downloads.
+
+## Commands
+
+| Command | What it returns |
+|---|---|
+| `python -m scorelab demo` | Saved one-step baseline counterexample and shared-parameter sequential audit. |
+| `python -m scorelab audit examples/two-state.json` | Exact path gradients, scalar baselines, means, covariances and excess-variance checks for the supplied model. |
+| `python -m scorelab linear-demo` | Saved three-action and sequential matrix-control comparisons. |
+| `python -m scorelab linear examples/two-state.json` | Matrix controls, singular normal equations and full covariance-gap certificates for the supplied model. |
 
 ![Exact gradient variance: a one-step value-baseline counterexample and a separate shared-parameter sequential model](assets/score-audit.svg)
 
-## Matrix score controls: a full covariance certificate
+## Matrix score controls and covariance gaps
 
 ![Exact matrix score-control audit: a three-action zero-covariance example and singular sequential normal equations](assets/linear-audit.svg)
 
@@ -49,7 +60,7 @@ and returns both the covariance gap and its positive-semidefinite node terms. A 
 
 Optional `control` has shape `[horizon][states][output_coordinate][score_coordinate]` of bounded rational pairs, using the same numerator/denominator bounds as the model. The `linear` CLI input accepts `version: 1`, `model`, `horizon`, and optional `control`, not `baseline`. The original `audit`/`demo` interfaces and their output remain unchanged. Matrix controls are deterministic and held fixed in the score estimator; learned/action-dependent controls and full-return optimization are outside this contract.
 
-## A correct value baseline can make the gradient nine times noisier
+## When the exact value baseline increases variance
 
 Take one Bernoulli action with `P(action=1)=4/5`, reward equal to the action, and a single logit parameter. Its expected reward is `4/5` and its exact gradient is `4/25`. The score is `1/5` after action 1 and `-4/5` after action 0. A baseline changes each estimate to `score * (reward - baseline)`.
 
